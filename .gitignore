@@ -3,6 +3,6 @@
 *.iml
 
 .python-version
-/__pycache__/
+__pycache__/
 
 replay_urls.txt
