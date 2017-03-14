@@ -1,12 +1,8 @@
 /.idea/
 /qchache/
+*.iml
 
-# pyenv
 .python-version
 /__pycache__/
-demoparser.py
-get_pd_replays.py
-parse_demo_file.py
+
 replay_urls.txt
-script.py
-spring-analysis.iml
