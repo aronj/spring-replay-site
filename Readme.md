@@ -1,0 +1,1 @@
+This is an wip python 3 update and method to save to mongodb of the python 2 spring rts replay parser.
