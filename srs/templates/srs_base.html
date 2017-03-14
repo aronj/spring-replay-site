@@ -1,0 +1,198 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+This file is part of the "spring relay site / srs" program. It is published
+under the GPLv3.
+
+Copyright (C) 2016 Daniel Troeder (daniel #at# admin-box #dot# com)
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!--
+CREDITS FOR THE ORIGINAL WEB DESIGN GO TO:
+  Made by Thomas Park. Contact him at thomas@bootswatch.com.
+  Code released under the MIT License.
+  http://bootswatch.com/slate/
+-->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Dansan" />
+    <meta name="Description" content="{% if not pagedescription %}Replay upload site for matches on the SpringRTS game engine.{% else %}{{ pagedescription }}{% endif %}"/>
+    <meta name="Keywords" content="replay, demo, sdf, spring, springrts, game, rts, real time strategy"/>
+    <link rel="icon" type="image/png" href="{% static "img/favicon.png" %}" />
+    <title>{%block pagetitle %}{% endblock %} | Spring Replay Site</title>
+
+    <link rel="alternate" type="application/rss+xml" title="RSS latest uploads" href="/feeds/latest/" />
+{% if user.is_authenticated and user.replays_uploaded > 0 %}
+    <link rel="alternate" type="application/rss+xml" title="RSS latest uploads of {{ user }}" href="/feeds/uploader/{{ user }}/" />
+{% endif %}
+
+    {% css "css/libs/ui-darkness/jquery-ui-1.10.4.custom.css" %}
+    {% css "css/libs/bootstrap.css" %}
+    {% css "css/libs/selectize.bootstrap3.css" %}
+{% block page_css %}{% endblock %}
+    {% css "css/dyn/style.css" %}
+
+    {% if game_pref and game_pref > 0 %}
+    <meta name="game_pref" content="{{ game_pref }}"/>
+    {% endif %}
+
+    <!-- HTML5, ECMAScript 5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      {% js "js/libs/html5shiv.js" %}
+      {% js "js/libs/respond.min.js" %}
+      {% js "js/libs/es5-shim.min.js" %}
+    <![endif]-->
+</head>
+<body>
+
+<!-- ------
+     NAVBAR
+     ------ -->
+
+  <div class="navbar navbar-default" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/"><span class="text-info">Spring</span> <span class="text-danger">Replays</span></a>
+      </div>
+      <div class="navbar-collapse collapse navbar-responsive-collapse">
+        <ul class="nav navbar-nav">
+        <!-- {{ game_pref }} -->
+          <li><a href="{% if game_pref_browse %}{% url "srs/browse_archive" game_pref_browse %}{% else %}{% url "srs/browse_archive" "" %}{% endif %}">Browse Archive</a></li>
+          <li><a href="{% if game_pref_obj.sldb_name %}{% url "srs/hall_of_fame" game_pref_obj.abbreviation %}{% else %}{% url "srs/hall_of_fame" "BA" %}{% endif %}">Hall of fame</a></li>
+          <li>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% if game_pref and game_pref > 0 %}{{ game_pref_obj.name }}{% else %}Game{% endif %} <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="./?game_pref=0" class="global_game" id="0">Clear filter <span class="pull-right glyphicon glyphicon-remove-circle"></span></a></li>
+              <li class="divider"></li>
+{% for game in all_games_mainmenu %}
+              <li><a href="./?game_pref={{ game.id }}" class="global_game" id="{{ game.id }}">{{ game.name }}</a></li>
+{% endfor %}
+            </ul>
+          </li>
+          <li>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Recent seen <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+{% for hreplay in page_history %}
+              <li>
+                  <a href="{% url "srs/replay" hreplay.gameID %}">
+                    <small>
+                        {{ hreplay.title }} ({{ hreplay.game.abbreviation }})<br/>
+                        {{ hreplay.unixTime|date:"d.m.Y H:i:s (T)" }}
+                    </small>
+                  </a>
+              </li>
+{% endfor %}
+            </ul>
+          </li>
+          <li>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Upload <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="{% url "srs/upload" %}">Replay</a></li>
+              <li><a href="{% url "infolog_upload/upload_html" %}">Infolog</a></li>
+            </ul>
+          </li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li>
+            <form class="navbar-form" role="search">
+              <div class="form-group" style="width: 200px;">
+                <select id="select-player" placeholder="Find a player..."></select>
+              </div>
+            </form>
+          </li>
+          <li class="dropdown">
+{% if user.is_authenticated %}
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><span class="glyphicon glyphicon-user"></span> {{ user }} <b class="caret"></b></a>
+            <ul class="dropdown-menu">
+              <li><a href="{% url "srs/player" user.userprofile.accountid %}">My player page</a></li>
+              <li><a href="{% url "srs/sldb_privacy_mode" %}">(SLDB) privacy setting</a></li>
+              <li><a href="{% url "srs/settings" %}">Settings</a></li>
+  {% if user.replays_uploaded > 0 %}
+              <li><a href="{% url "srs/browse_archive" "" %}uploader={{ user.username }}/">My uploads</a></li>
+  {% endif %}
+  {% if user.userprofile.is_developer or user.infolog_uploader.exists %}
+              <li><a href="{% url "infolog_upload/index" %}">Infologs</a></li>
+  {% endif %}
+  {% if user.is_superuser %}
+              <li><a href="{% url 'admin:index' %}">Admin</a></li>
+  {% endif %}
+              <li class="divider"></li>
+              <li><a href="{% url "srs/logout" %}?next={{ selfurl }}">Logout</a></li>
+            </ul>
+{% else %}
+            <a href="{% url "srs/login" %}?next={{ selfurl }}"><span class="glyphicon glyphicon-user"></span> Login</a>
+{% endif %}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+<!-- -------
+     CONTENT
+     ------- -->
+
+  <div class="container-fluid">
+{% block maincontent %}{% endblock %}
+  </div>
+
+<!-- ------
+     FOOTER
+     ------ -->
+
+  <footer itemscope itemtype="http://schema.org/WebPage">
+    <div class="container-fluid">
+      <link itemprop="additionalType" href="http://schema.org/WPFooter"/>
+      <div class="row" >
+        <div class="col-xs-12" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <link itemprop="name" content="Dansan" />
+          <ul class="list-unstyled">
+            <li class="pull-right"><a href="#top">Back to top</a></li>
+            <li><a href="http://springrts.com/phpbb/viewtopic.php?f=71&t=28019">SpringRTS forum</a></li>
+            <li><a href="https://github.com/dansan/spring-replay-site/" itemprop="url">GitHub</a></li>
+            <li><a href="/feeds/latest/" title="feed of latest replay uploads">RSS</a></li>
+            {% if user.is_authenticated and user.replays_uploaded > 0 %}<li><a href="/feeds/uploader/{{ user }}/" title="feed of _your_ latest replay uploads">RSS of <i>your</i> uploads</a></li>{% endif %}
+          </ul>
+          <p>Theme "Slate" by Thomas Park from <a href="http://bootswatch.com/slate/">Bootswatch</a>.</p>
+        </div>
+      </div>
+      <meta itemprop="name" content="SpringRTS replay site"/>
+      <meta itemprop="genre" content="game"/>
+      <meta itemprop="isBasedOnUrl" content="https://github.com/dansan/spring-replay-site"/>
+    </div>
+  </footer>
+
+<!-- ------
+       JS
+     ------ -->
+  {% js_lib "jquery-2.0.3.js" %}
+  {% django_js_init %}
+  {% js "js/djangojs/django.js" %}
+  {% js_lib "jquery-ui-1.10.4.custom.min.js" %}
+  {% js_lib "bootstrap.min.js" %}
+  {% js_lib "selectize.min.js" %}
+  {% js "js/dyn/srs_base.js" %}
+
+{% block page_js %}{% endblock %}
+<!-- -----
+     Piwik
+     ----- -->
+
+  <!-- If you wish to not be tracked, you can opt out using the "Links" -> "Privacy | Tracking opt out" link. -->
+  {% js "js/libs/piwik_track.js" %}
+  <noscript>
+     <p><img src="/piwik/piwik.php?idsite=1&amp;rec=1" style="border:0" alt="" /></p>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,138 @@
+HOWTO make SPADS upload replays of games to replays.springrts.com
+=================================================================
+
+SPADS supports automatic uploading of "Spring Demo Files" (*.sdf) to the replays
+website using an external Python script.
+
+Software requirements:
+----------------------
+* SPADS version >= 0.10
+* Spring engine version >= 89.0
+* Python >= 2.6 (Windows users make sure the Python install directory is added
+                 to your PATH variable.)
+* optional: PycURL (for bandwidth throttling)
+
+Python can be obtained from: http://python.org/download/
+  Debian/Ubuntu/Fedora/Arch: python
+  Gentoo: dev-lang/python:2.7
+  Windows: use binary package from homepage
+
+PycURL can be obtained from: http://pycurl.sourceforge.net/
+  Debian/Ubuntu/Fedora/Arch: python-pycurl
+  Gentoo: dev-python/pycurl
+  Windows: compile from source or search binary packages (watch out for correct
+           OS version and 32/64 bit). Success was reported with package from
+           http://www.lfd.uci.edu/~gohlke/pythonlibs/#pycurl
+
+
+short version:
+--------------
+* log in once with a Spring account which will be the "owner" of the uploaded
+  replays: http://replays.springrts.com/login/
+* update endGameCommand, endGameCommandEnv and endGameCommandMsgsettings in
+   spads.conf as follows (replace <owner> by the actual Spring account used in
+    previous step):
+    endGameCommand:python replay_upload.py -v -r %result -d %gameDuration "%type on %map" "autouploaded" "%type,%structure" "%demoFile" "<owner>"
+    endGameCommandEnv:XMLRPC_USER=%ahName;XMLRPC_PASSWORD=%ahPassword
+    endGameCommandMsg:(0)Demo file uploaded to http://replays.springrts.com/replay/%gameId|(1-9)Failed to upload demo file!
+* WARNING: this configuration will send your autohost password to the replay
+  site for authentication. If you don't want this to happen, you can create a
+  new Spring account just to upload the replays (replace %ahName and %ahPassword
+  by this account name and password in previous step)
+* if you wish to use bandwidth throttling, read the section "Bandwidth throttling"
+* restart SPADS
+
+
+Usage (long version):
+---------------------
+Configure endGameCommand, endGameCommandEnv and endGameCommandMsgsettings in
+spads.conf.
+
+endGameCommand:python replay_upload.py -v -r %result -d %gameDuration "title" "comment" "tag1,tag2" "%demoFile" "owner"
+endGameCommandEnv:XMLRPC_USER=%ahName;XMLRPC_PASSWORD=%ahPassword
+endGameCommandMsg:(0)Demo file uploaded to http://replays.springrts.com/replay/%gameId/|(1-9)Failed to upload demo file!
+
+This would upload the Spring Demo File with a title "title", a comment "comment",
+add the tags "tag1" and "tag2" and make it owned by the Spring user "owner".
+
+For authentication the autohosts account data would be used. If you do not wish
+to use the autohosts credentials, create a Spring account and use its username
+and password instead. Username and password are passed to the Python script as
+environment variable, to hide them from the eyes of other users of the system.
+
+The "owner" must have logged in at least once to the replays site, or the upload
+will fail! http://replays.springrts.com/login/
+
+The replays website saves a title, a comment, tags and an owner for each
+uploaded replay. The owner can login to the site and edit the replays title,
+comment and tags. Owner accounts are Spring accounts. Title, comment, tags and
+owner name are passed to the Python script on the command line.
+
+endGameCommandMsg prints different messages, depending on the exit code of the
+upload script. SPADS logs the exit code. See section "Error codes" below for the
+interpretation of the codes.
+
+I suggest to test settings first on the command line, and if everything works as
+expected, make them permanent in the configuration file.
+
+Please run "python replay_upload.py -h" now, to see a help screen.
+
+Set authentication parameters:
+# export XMLRPC_USER="Dansan"
+# export XMLRPC_PASSWORD="sEcReT"
+
+Optionally use the testing site for upload (owner must login there first!):
+# export XMLRPC_URL=http://replays-test.springrts.com/xmlrpc/
+
+Run the upload:
+# python replay_upload.py -v "awesome game" "checkout that dude in SE" "tag1,tag2,tag3" "/tmp/20130229_123456_RustyDelta_v2_88.sdf" "Danchan"
+
+The game will be uploaded to the testing site: http://replays-test.springrts.com/
+or an error message will be shown. The "-v" makes it display information and
+errors. SPADS will not log any output of the upload script (only the exit code),
+but textual output will be shown on stdout in a terminal.
+
+In the configuration file you can use variables to describe the game better:
+http://planetspads.free.fr/spads/doc/spadsDoc_All.html#set:endGameCommand
+
+Example:
+ endGameCommand:python replay_upload.py -v -r %result -d %gameDuration "%type on %ahName" "autouploaded" "%type,%structure" "%demoFile" "[Your]Account"
+ endGameCommandEnv:XMLRPC_USER=%ahName;XMLRPC_PASSWORD=%ahPassword
+ endGameCommandMsg:(0)Demo file uploaded to http://replays.springrts.com/replay/%gameId/|(1-9)Failed to upload demo file!
+
+Again, if you wish to test your settings before uploading to the replays site,
+just use testing site by appending ";XMLRPC_URL=http://replays-test.springrts.com/xmlrpc/"
+to endGameCommandEnv (mind the ";"):
+ endGameCommandEnv:XMLRPC_USER=%ahName;XMLRPC_PASSWORD=%ahPassword;XMLRPC_URL=http://replays-test.springrts.com/xmlrpc/
+
+If you wish for games NOT to be uploaded that
+* never started or
+* were shorter than 3 minutes or
+* !stop AND shorter than 6 minutes
+you must use "-r %result -d %gameDuration" in endGameCommand as written above.
+
+Restart SPADS.
+
+
+Bandwidth throttling
+--------------------
+The cURL library is used for bandwidth throttling the transfer. You must install
+its Python binding and a Python-module to use it as a replay-transpor:
+* install PycURL (see section "Software requirements" for download/package)
+* download pyCURLTransport.py, and put it into the same directory as replay_upload.py:
+  # wget https://raw.github.com/dansan/spring-replay-site/master/srs/contrib/pyCURLTransport.py
+* add "-t num" to endGameCommand between "replay_upload.py -v" and "title":
+   endGameCommand:python replay_upload.py -t 204800 title comment tags "%demoFile" "owner"
+* the number is bytes per second. To upload with 200 KB/s use "204800".
+* restart SPADS
+
+
+Error codes
+-----------
+0 no error, upload was a success
+1 unknown, inactive or invalid *uploader* account
+2 unknown or inactive *owner* account (remember to log in via web interface once)
+3 replay already exists (same gameID)
+4 server or network error
+5 no error, but the match did not start or was shorter than 3 min. and thus the replay was not uploaded
+6 could not read spring demo file from disk

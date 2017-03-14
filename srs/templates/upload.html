@@ -1,0 +1,83 @@
+{% extends 'srs_base.html' %}
+
+{% comment %}
+<!-- 
+Please see srs_base.html for license information.
+-->
+{% endcomment %}
+
+{% block pagetitle %}Upload{% endblock %}
+
+{% block maincontent%}
+    <div class="row">
+      <div class="col-xs-12 col-sm-8 col-sm-offset-2">
+        <h1 class="page-header">Replay upload</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-8 col-sm-offset-2">
+        <div class="panel panel-warning">
+          <div class="panel-heading">
+            <h3 class="panel-title">Infolog upload</h3>
+          </div>
+          <div class="panel-body">
+            <p>If you wish to upload a infolog.txt file, please follow <a href="{% url 'infolog_upload/upload_html' %}">this link</a>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-8 col-sm-offset-2">
+        <div class="panel panel-info">
+          <div class="panel-heading">
+            <h3 class="panel-title">Readme</h3>
+          </div>
+          <div class="panel-body">
+            <p>Please supply a Spring Demo File (*.sdf), a short subject, a comment and tags.</p>
+            <p>Regarding tagging: Please note that a tag for the team size (1v1, 2v2, 8v8) is added automatically if not present.</p>
+            <p>Please <u>do not use map names or player names as tags</u>, as they are categorized separately.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-8 col-sm-offset-2">
+        <form class="form-horizontal" action="." method="POST" enctype="multipart/form-data" role="form">
+        {{ formset.management_form }}
+  {% for form in formset %}
+    {% if not forloop.first %}
+          <div class="blind" style="display:none;">
+    {% endif %}
+            <div class="panel panel-primary">
+              <div class="panel-heading">
+                <h3 class="panel-title">Upload a replay</h3>
+              </div>
+              <div class="panel-body">
+                  <div class="">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                  </div>
+                  <div class="">
+                    <div class="col-lg-8 col-lg-offset-2">
+                      <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                  </div>
+              </div>
+            </div>
+    {% if not forloop.first %}
+          </div>
+    {% endif %}
+  {% endfor %}
+        </form>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-8 col-sm-offset-2">
+        <button class="clickme btn btn-default">Click me for multi-upload</button>
+      </div>
+    </div>
+{% endblock %}
+
+{% block page_js %}
+  {% js "js/dyn/srs_upload.js" %}
+{% endblock %}
